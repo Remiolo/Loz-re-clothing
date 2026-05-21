@@ -118,7 +118,7 @@
 
   .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s;}
   .modal-overlay.open{opacity:1;pointer-events:all;}
-  .modal{background:white;border-radius:20px;padding:2rem;width:480px;max-width:95vw;transform:translateY(20px);transition:transform .3s;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+  .modal{background:white;border-radius:20px;padding:2rem;width:480px;max-width:95vw;max-height:90vh;overflow-y:auto;transform:translateY(20px);transition:transform .3s;box-shadow:0 20px 60px rgba(0,0,0,.3);}
   .modal-overlay.open .modal{transform:translateY(0);}
   .modal h2{font-size:1.4rem;font-weight:800;margin-bottom:.5rem;}
   .modal .sub-title{color:#888;font-size:.85rem;margin-bottom:1.5rem;}

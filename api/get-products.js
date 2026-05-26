@@ -4,7 +4,7 @@ export default async function handler(req, res) {
       'https://api.printful.com/store/products',
       {
         headers: {
-          Authorization: `Bearer ${process.env.PRINTFUL_API_KEY}`,
+          Authorization: `Bearer ${process.env.PRINTFUL_TOKEN}`,
         },
       }
     );

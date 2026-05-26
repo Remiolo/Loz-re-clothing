@@ -1,40 +1,48 @@
-module.exports = async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  if (req.method !== "GET") return res.status(405).end();
-
+export default async function handler(req, res) {
   try {
-    // Récupérer tous les produits de la boutique Printful
-    const r = await fetch("https://api.printful.com/store/products", {
-      headers: { Authorization: `Bearer ${process.env.PRINTFUL_TOKEN}` }
-    });
-    const data = await r.json();
+    const response = await fetch(
+      'https://api.printful.com/store/products',
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.PRINTFUL_API_KEY}`,
+        },
+      }
+    );
 
-    // Pour chaque produit, récupérer les détails (photos, variantes, prix)
-    const products = await Promise.all(data.result.map(async (p) => {
-      const r2 = await fetch(`https://api.printful.com/store/products/${p.id}`, {
-        headers: { Authorization: `Bearer ${process.env.PRINTFUL_TOKEN}` }
+    const data = await response.json();
+
+    console.log(data);
+
+    if (!data.result) {
+      return res.status(500).json({
+        error: 'Aucun produit trouvé',
       });
-      const detail = await r2.json();
-      const product = detail.result.sync_product;
-      const variants = detail.result.sync_variants;
+    }
 
-      return {
-        id: product.id,
-        name: product.name,
-        image: product.thumbnail_url,
-        variants: variants.map(v => ({
-          id: v.id,
-          name: v.name,
-          size: v.size,
-          color: v.color,
-          price: v.retail_price,
-          currency: v.currency,
-        }))
-      };
+    const formattedProducts = data.result.map((product) => ({
+      id: product.id,
+      name: product.name,
+      image: product.thumbnail_url,
+
+      variants: product.sync_variants.map((variant) => ({
+        id: variant.id,
+        price: variant.retail_price,
+        size:
+          variant.size ||
+          variant.name ||
+          'Unique',
+      })),
     }));
 
-    res.json({ products });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(200).json({
+      products: formattedProducts,
+    });
+
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      error: error.message,
+    });
   }
-};
+}

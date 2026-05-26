@@ -279,7 +279,8 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const STRIPE_PUBLIC_KEY = 'pk_live_51T6zYSFkD773xqpJxzrns5ODDh6CpcQXlYJV0c7h8eLgz0p6j2kTmuwG9E8orarySOujoGyA0BqjcszjYPuhX6v000GbWQnQWx'; // pk_live_...
+const STRIPE_PUBLIC_KEY = 'pk_live_51T6zYSFkD773xqpJxzrns5ODDh6CpcQXlYJV0c7h8eLgz0p6j2kTmuwG9E8orarySOujoGyA0BqjcszjYPuhX6v000GbWQnQWx
+'; // pk_live_...
 
 const sportProducts = [
   {id:1,name:"T-shirt Trail Aubrac",desc:"Technique respirant — conquête du plateau",price:34.90,emoji:"👕",bg:"s1",badge:true},
@@ -434,9 +435,87 @@ async function processPayment(){
 function orderDone(){cart=[];updateCartUI();closeCheckout();showToast("🏔️ Merci, le 48 vous salue !");}
 function showToast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),3000);}
 
-renderGrid(sportProducts,'sportGrid','sport');
-renderGrid(lifestyleProducts,'lifestyleGrid','lifestyle');
-updateCartUI();
+// Charger les produits depuis Printful
+async function loadProducts() {
+  try {
+    const res = await fetch('/api/get-products');
+    const data = await res.json();
+    if (!data.products) throw new Error('Pas de produits');
+
+    // Séparer sport et lifestyle (les 2 premiers = sport, les 2 derniers = lifestyle)
+    const sport = data.products.slice(0, 2);
+    const lifestyle = data.products.slice(2);
+
+    renderPrintfulGrid(sport, 'sportGrid', 'sport');
+    renderPrintfulGrid(lifestyle, 'lifestyleGrid', 'lifestyle');
+  } catch(err) {
+    console.error('Erreur chargement produits:', err);
+    // Fallback sur les produits statiques
+    renderGrid(sportProducts,'sportGrid','sport');
+    renderGrid(lifestyleProducts,'lifestyleGrid','lifestyle');
+  }
+  updateCartUI();
+}
+
+function renderPrintfulGrid(products, containerId, type) {
+  document.getElementById(containerId).innerHTML = products.map(p => {
+    const prices = p.variants.map(v => parseFloat(v.price));
+    const minPrice = Math.min(...prices).toFixed(2);
+    const sizes = [...new Set(p.variants.map(v => v.size).filter(Boolean))];
+
+    return `
+      <div class="prod-card">
+        <div class="prod-img" style="background:#f0ebe3;padding:1rem">
+          <img src="${p.image}" alt="${p.name}" style="width:100%;height:100%;object-fit:contain;border-radius:8px">
+        </div>
+        <div class="prod-info">
+          <h3>${p.name}</h3>
+          <p class="sub">Lozère 48 — Imprimé à la demande</p>
+          <div style="margin-bottom:10px">
+            <select id="size-${p.id}" style="width:100%;padding:6px 10px;border:2px solid #e0e0e0;border-radius:8px;font-size:0.85rem;outline:none">
+              <option value="">Choisir une taille</option>
+              ${sizes.map(s => `<option value="${s}">${s}</option>`).join('')}
+            </select>
+          </div>
+          <div class="prod-footer">
+            <span class="price ${type}">À partir de ${minPrice} €</span>
+            <button class="add-btn ${type}" onclick="addPrintfulToCart(${JSON.stringify(p).replace(/"/g, '&quot;')}, '${type}')">+ Ajouter</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function addPrintfulToCart(product, type) {
+  const sizeEl = document.getElementById(`size-${product.id}`);
+  const size = sizeEl ? sizeEl.value : '';
+  if (!size) { showToast('⚠️ Choisissez une taille !'); return; }
+
+  const variant = product.variants.find(v => v.size === size);
+  if (!variant) { showToast('⚠️ Variante introuvable'); return; }
+
+  const existing = cart.find(x => x.variantId === variant.id);
+  if (existing) {
+    existing.qty++;
+  } else {
+    cart.push({
+      id: variant.id,
+      variantId: variant.id,
+      productId: product.id,
+      name: product.name,
+      desc: `Taille ${size}`,
+      price: parseFloat(variant.price),
+      emoji: type === 'sport' ? '👕' : '🐂',
+      qty: 1,
+      size,
+    });
+  }
+  updateCartUI();
+  showToast(`✅ ${product.name} (${size}) ajouté !`);
+}
+
+loadProducts();
 </script>
 </body>
 </html>

@@ -10,27 +10,27 @@ export default async function handler(req, res) {
     );
 
     const data = await response.json();
-    console.log(JSON.stringify(data, null, 2));
-    console.log(data);
 
-    if (!data.result) {
+    console.log(JSON.stringify(data, null, 2));
+
+    const products = data.result?.products;
+
+    if (!Array.isArray(products)) {
       return res.status(500).json({
-        error: 'Aucun produit trouvé',
+        error: 'Format Printful inattendu',
+        debug: data,
       });
     }
 
-    const formattedProducts = data.result.map((product) => ({
+    const formattedProducts = products.map((product) => ({
       id: product.id,
       name: product.name,
       image: product.thumbnail_url,
 
-      variants: product.sync_variants.map((variant) => ({
+      variants: (product.sync_variants || []).map((variant) => ({
         id: variant.id,
         price: variant.retail_price,
-        size:
-          variant.size ||
-          variant.name ||
-          'Unique',
+        size: variant.size || variant.name || 'Unique',
       })),
     }));
 
